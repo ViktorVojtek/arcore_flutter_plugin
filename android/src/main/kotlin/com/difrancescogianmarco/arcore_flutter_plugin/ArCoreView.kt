@@ -80,7 +80,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 })
         
         // Initialize TransformationSystem for gesture handling
-        transformationSystem = TransformationSystem(context.resources.displayMetrics, gestureDetector)
+        transformationSystem = TransformationSystem(context.resources.displayMetrics, null)
 
         sceneUpdateListener = Scene.OnUpdateListener { frameTime ->
 
