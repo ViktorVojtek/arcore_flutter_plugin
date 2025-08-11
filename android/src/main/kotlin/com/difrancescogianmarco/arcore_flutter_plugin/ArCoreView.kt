@@ -388,30 +388,12 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         
                         debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
                         
-                        // CRITICAL: Always let TransformationSystem handle ALL touch events first
-                        // This is required for pan, rotation, and scale gestures to work
-                        var transformationHandled = false
-                        val transformSystem = transformationSystem
-                        if (transformSystem != null) {
-                            transformationHandled = transformSystem.onTouch(null, event)
-                        }
-                        
-                        debugLog("TransformationSystem handled touch: $transformationHandled")
-                        if (transformationHandled) {
-                            debugLog("Touch consumed by TransformationSystem")
-                            return@setOnTouchListener true
-                        }
-
-                        // For transformable nodes, handle taps but let TransformationSystem handle multi-finger gestures
+                        // For transformable nodes, let them handle their own gestures
                         if (hitTestResult.node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
                             debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
-                            // Only handle single taps here - TransformationSystem handles multi-finger gestures above
-                            if (event.action == MotionEvent.ACTION_UP && event.pointerCount == 1) {
-                                debugLog("Single tap on transformable node: ${hitTestResult.node?.name}")
-                                // Let the node's tap listener handle selection
-                                return@setOnTouchListener false // Allow tap to reach the node
-                            }
-                            return@setOnTouchListener true // Consume other touch events
+                            // Let the transformable node handle the touch event
+                            // The TransformationSystem is integrated within the GestureTransformableNode
+                            return@setOnTouchListener false // Allow the node to handle the gesture
                         }
 
                         // Handle regular nodes
