@@ -24,6 +24,7 @@ import com.google.ar.sceneform.*
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.rendering.Texture
 import com.google.ar.sceneform.ux.AugmentedFaceNode
+import com.google.ar.sceneform.ux.TransformationSystem
 import io.flutter.app.FlutterApplication
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -49,6 +50,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     private var mUserRequestedInstall = true
     private val TAG: String = ArCoreView::class.java.name
     private var arSceneView: ArSceneView? = null
+    private var transformationSystem: TransformationSystem? = null
     private val gestureDetector: GestureDetector
     private val RC_PERMISSIONS = 0x123
     private var sceneUpdateListener: Scene.OnUpdateListener
@@ -62,6 +64,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     init {
         methodChannel.setMethodCallHandler(this)
         arSceneView = ArSceneView(context)
+        
         // Set up a tap gesture detector.
         gestureDetector = GestureDetector(
                 context,
@@ -75,6 +78,9 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         return true
                     }
                 })
+        
+        // Initialize TransformationSystem for gesture handling
+        transformationSystem = TransformationSystem(context.resources.displayMetrics, gestureDetector)
 
         sceneUpdateListener = Scene.OnUpdateListener { frameTime ->
 
@@ -438,27 +444,35 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     fun onAddNode(flutterArCoreNode: FlutterArCoreNode, result: MethodChannel.Result?) {
 
         debugLog(flutterArCoreNode.toString())
-        NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, throwable ->
-
-            debugLog("onAddNode inserted ${node?.name}")
-
-/*            if (flutterArCoreNode.parentNodeName != null) {
-                debugLog(flutterArCoreNode.parentNodeName);
-                val parentNode: Node? = arSceneView?.scene?.findByName(flutterArCoreNode.parentNodeName)
-                parentNode?.addChild(node)
-            } else {
-                debugLog("addNodeToSceneWithGeometry: NOT PARENT_NODE_NAME")
-                arSceneView?.scene?.addChild(node)
-            }*/
-            if (node != null) {
-                attachNodeToParent(node, flutterArCoreNode.parentNodeName)
-                for (n in flutterArCoreNode.children) {
-                    n.parentNodeName = flutterArCoreNode.name
-                    onAddNode(n, null)
+        
+        if (flutterArCoreNode.isTransformable && transformationSystem != null) {
+            // Create transformable node for gesture handling
+            NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
+                debugLog("onAddNode inserted transformable ${node?.name}")
+                
+                if (node != null) {
+                    attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                    for (n in flutterArCoreNode.children) {
+                        n.parentNodeName = flutterArCoreNode.name
+                        onAddNode(n, null)
+                    }
                 }
             }
+        } else {
+            // Create regular node
+            NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, throwable ->
+                debugLog("onAddNode inserted ${node?.name}")
 
+                if (node != null) {
+                    attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                    for (n in flutterArCoreNode.children) {
+                        n.parentNodeName = flutterArCoreNode.name
+                        onAddNode(n, null)
+                    }
+                }
+            }
         }
+        
         result?.success(null)
     }
 

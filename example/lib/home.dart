@@ -11,6 +11,7 @@ import 'screens/texture_and_rotation.dart';
 import 'screens/assets_object.dart';
 import 'screens/auto_detect_plane.dart';
 import 'screens/remote_object.dart';
+import 'screens/gesture_example.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -27,6 +28,13 @@ class HomeScreen extends StatelessWidget {
                   .push(MaterialPageRoute(builder: (context) => HelloWorld()));
             },
             title: Text("Hello World"),
+          ),
+          ListTile(
+            onTap: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => GestureExample()));
+            },
+            title: Text("Gesture Example - Pan & Rotate"),
           ),
           ListTile(
             onTap: () {

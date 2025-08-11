@@ -15,6 +15,9 @@ class ArCoreNode {
     Vector3? scale,
     Vector4? rotation,
     this.children = const [],
+    this.isTransformable = false,
+    this.enablePanGestures = true,
+    this.enableRotationGestures = true,
   })  : name = name ?? random_string.randomString(),
         position = position != null ? ValueNotifier(position) : null,
         scale = scale != null ? ValueNotifier(scale) : null,
@@ -35,6 +38,15 @@ class ArCoreNode {
 
   final ArCoreImage? image;
 
+  /// Whether this node should use TransformableNode for gesture support
+  final bool isTransformable;
+
+  /// Whether pan gestures are enabled for this node (requires isTransformable = true)
+  final bool enablePanGestures;
+
+  /// Whether rotation gestures are enabled for this node (requires isTransformable = true)
+  final bool enableRotationGestures;
+
   Map<String, dynamic> toMap() => <String, dynamic>{
         'dartType': runtimeType.toString(),
         'shape': shape?.toMap(),
@@ -45,5 +57,8 @@ class ArCoreNode {
         'image': image?.toMap(),
         'children':
             this.children?.map((arCoreNode) => arCoreNode.toMap()).toList(),
+        'isTransformable': isTransformable,
+        'enablePanGestures': enablePanGestures,
+        'enableRotationGestures': enableRotationGestures,
       }..removeWhere((String k, dynamic v) => v == null);
 }

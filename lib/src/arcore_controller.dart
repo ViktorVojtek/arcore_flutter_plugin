@@ -3,6 +3,7 @@ import 'package:arcore_flutter_plugin/src/arcore_rotating_node.dart';
 import 'package:arcore_flutter_plugin/src/utils/vector_utils.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 import 'arcore_hit_test_result.dart';
 import 'arcore_node.dart';
@@ -14,6 +15,7 @@ typedef ArCoreHitResultHandler = void Function(List<ArCoreHitTestResult> hits);
 typedef ArCorePlaneHandler = void Function(ArCorePlane plane);
 typedef ArCoreAugmentedImageTrackingHandler = void Function(
     ArCoreAugmentedImage);
+typedef ArCoreGestureHandler = void Function(String nodeName, Vector3 position, Vector4 rotation);
 
 const UTILS_CHANNEL_NAME = 'arcore_flutter_plugin/utils';
 
@@ -57,6 +59,9 @@ class ArCoreController {
   ArCorePlaneHandler? onPlaneDetected;
   String trackingState = '';
   ArCoreAugmentedImageTrackingHandler? onTrackingImage;
+
+  /// Callback for when a transformable node is moved via gestures
+  ArCoreGestureHandler? onNodeTransformed;
 
   init() async {
     try {
@@ -123,6 +128,15 @@ class ArCoreController {
           print('Toggling Plane Renderer Visibility');
         }
         togglePlaneRenderer();
+        break;
+      case 'onNodeTransformed':
+        if (onNodeTransformed != null) {
+          final Map<String, dynamic> data = call.arguments;
+          final String nodeName = data['nodeName'];
+          final Vector3 position = Vector3.array(data['position']);
+          final Vector4 rotation = Vector4.array(data['rotation']);
+          onNodeTransformed!(nodeName, position, rotation);
+        }
         break;
 
       default:

@@ -1,12 +1,15 @@
 package com.difrancescogianmarco.arcore_flutter_plugin.flutter_models
 
 import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
+import com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils.Companion.parseQuaternion
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils.Companion.parseVector3
 import com.google.ar.core.Pose
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
+import com.google.ar.sceneform.ux.TransformationSystem
+import io.flutter.plugin.common.MethodChannel
 
 class FlutterArCoreNode(map: HashMap<String, *>) {
 
@@ -23,6 +26,9 @@ class FlutterArCoreNode(map: HashMap<String, *>) {
             ?: Quaternion()
     val degreesPerSecond: Float? = getDegreesPerSecond((map["degreesPerSecond"] as? Double))
     var parentNodeName: String? = map["parentNodeName"] as? String
+    val isTransformable: Boolean = map["isTransformable"] as? Boolean ?: false
+    val enablePanGestures: Boolean = map["enablePanGestures"] as? Boolean ?: true
+    val enableRotationGestures: Boolean = map["enableRotationGestures"] as? Boolean ?: true
 
     val children: ArrayList<FlutterArCoreNode> = getChildrenFromMap(map["children"] as ArrayList<HashMap<String, *>>)
 
@@ -44,6 +50,24 @@ class FlutterArCoreNode(map: HashMap<String, *>) {
         node.localRotation = rotation
 
         return node
+    }
+
+    fun buildTransformableNode(transformationSystem: TransformationSystem, methodChannel: MethodChannel): Node {
+        return if (isTransformable) {
+            val transformableNode = GestureTransformableNode(
+                transformationSystem, 
+                methodChannel, 
+                name
+            )
+            transformableNode.enablePanGestures = enablePanGestures
+            transformableNode.enableRotationGestures = enableRotationGestures
+            transformableNode.localPosition = position
+            transformableNode.localScale = scale
+            transformableNode.localRotation = rotation
+            transformableNode
+        } else {
+            buildNode()
+        }
     }
 
     fun getPosition(): FloatArray {
