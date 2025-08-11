@@ -149,7 +149,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
     fun debugLog(message: String) {
         if (debug) {
-            Log.i(TAG, message)
+            Log.i(TAG, "ARCore: $message")
         }
     }
 
@@ -457,31 +457,40 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
     fun onAddNode(flutterArCoreNode: FlutterArCoreNode, result: MethodChannel.Result?) {
 
-        debugLog(flutterArCoreNode.toString())
+        debugLog("=== NODE CREATION START ===")
+        debugLog("Node name: ${flutterArCoreNode.name}")
+        debugLog("Node dart type: ${flutterArCoreNode.dartType}")
         debugLog("isTransformable: ${flutterArCoreNode.isTransformable}")
         debugLog("enablePanGestures: ${flutterArCoreNode.enablePanGestures}")
         debugLog("enableRotationGestures: ${flutterArCoreNode.enableRotationGestures}")
         debugLog("transformationSystem available: ${transformationSystem != null}")
+        debugLog("transformationSystem object: $transformationSystem")
         
-        if (flutterArCoreNode.isTransformable && transformationSystem != null) {
-            debugLog("Creating TRANSFORMABLE node for ${flutterArCoreNode.name}")
+        val shouldCreateTransformable = flutterArCoreNode.isTransformable && transformationSystem != null
+        debugLog("Should create transformable node: $shouldCreateTransformable")
+        
+        if (shouldCreateTransformable) {
+            debugLog("✅ Creating TRANSFORMABLE node for ${flutterArCoreNode.name}")
             // Create transformable node for gesture handling
             NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
-                debugLog("onAddNode inserted transformable ${node?.name}")
+                debugLog("✅ Transformable node creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
                 
                 if (node != null) {
+                    debugLog("✅ Attaching transformable node to parent")
                     attachNodeToParent(node, flutterArCoreNode.parentNodeName)
                     for (n in flutterArCoreNode.children) {
                         n.parentNodeName = flutterArCoreNode.name
                         onAddNode(n, null)
                     }
+                } else {
+                    debugLog("❌ Transformable node creation FAILED: ${throwable?.message}")
                 }
             }
         } else {
-            debugLog("Creating REGULAR node for ${flutterArCoreNode.name} (isTransformable=false or transformationSystem=null)")
+            debugLog("❌ Creating REGULAR node for ${flutterArCoreNode.name} (isTransformable=${flutterArCoreNode.isTransformable}, transformationSystem=${transformationSystem != null})")
             // Create regular node
             NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, throwable ->
-                debugLog("onAddNode inserted ${node?.name}")
+                debugLog("Regular node creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
 
                 if (node != null) {
                     attachNodeToParent(node, flutterArCoreNode.parentNodeName)
@@ -489,11 +498,14 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         n.parentNodeName = flutterArCoreNode.name
                         onAddNode(n, null)
                     }
+                } else {
+                    debugLog("❌ Regular node creation FAILED: ${throwable?.message}")
                 }
             }
         }
         
         result?.success(null)
+        debugLog("=== NODE CREATION END ===")
     }
 
     fun attachNodeToParent(node: Node?, parentNodeName: String?) {
