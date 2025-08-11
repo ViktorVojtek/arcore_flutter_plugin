@@ -240,7 +240,20 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 debugLog(" Toggle planeRenderer visibility" )
                 arSceneView!!.planeRenderer.isVisible = !arSceneView!!.planeRenderer.isVisible
             }
+            "touch" -> {
+                debugLog("Touch method called - ignoring for now")
+                // This method is called by some gesture code but we handle gestures directly
+                // in the touch listener, so we can safely ignore this
+                result.success(null)
+            }
+            "onNodeTransformed" -> {
+                debugLog("onNodeTransformed callback received")
+                // This should be called from the GestureTransformableNode when it transforms
+                result.success(null)
+            }
             else -> {
+                debugLog("Unknown method called: ${call.method}")
+                result.notImplemented()
             }
         }
     }
@@ -381,6 +394,13 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
     private fun arScenViewInit(call: MethodCall, result: MethodChannel.Result, context: Context) {
         debugLog("arScenViewInit")
+        
+        // Add TransformationSystem to the scene
+        if (transformationSystem != null) {
+            arSceneView?.scene?.addChild(transformationSystem!!.selectionVisualizer)
+            debugLog("✅ Added TransformationSystem to scene")
+        }
+        
         val enableTapRecognizer: Boolean? = call.argument("enableTapRecognizer")
         if (enableTapRecognizer != null && enableTapRecognizer) {
             arSceneView
