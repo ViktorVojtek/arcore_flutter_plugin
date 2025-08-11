@@ -2,6 +2,7 @@ package com.difrancescogianmarco.arcore_flutter_plugin.models
 
 import android.util.Log
 import com.google.ar.sceneform.Node
+import com.google.ar.sceneform.FrameTime
 import com.google.ar.sceneform.ux.TransformableNode
 import com.google.ar.sceneform.ux.TransformationSystem
 import io.flutter.plugin.common.MethodChannel
@@ -10,7 +11,7 @@ import io.flutter.plugin.common.MethodChannel
  * A TransformableNode with Flutter gesture callbacks
  */
 class GestureTransformableNode(
-    transformationSystem: TransformationSystem,
+    private val transformationSystem: TransformationSystem,
     private val methodChannel: MethodChannel,
     private val nodeName: String
 ) : TransformableNode(transformationSystem) {
@@ -38,12 +39,22 @@ class GestureTransformableNode(
 
     init {
         Log.d(TAG, "GestureTransformableNode created for: $nodeName")
-        // Set up transformation listeners
-        setOnTouchListener { _, event ->
-            Log.d(TAG, "Touch event received on node: $nodeName, action: ${event.action}")
-            // Report transformation changes to Flutter
-            reportTransformation()
-            false // Allow gesture processing to continue
+        
+        // Configure gesture settings immediately
+        updateGestureSettings()
+        
+        // Set up proper touch handling for TransformableNode
+        setOnTapListener { hitTestResult, motionEvent ->
+            Log.d(TAG, "Node $nodeName tapped - selecting for transformation")
+            // This is CRUCIAL: select the node when tapped to enable gestures
+            if (transformationSystem != null) {
+                transformationSystem.selectNode(this)
+                Log.d(TAG, "Node $nodeName selected for transformation")
+                true
+            } else {
+                Log.w(TAG, "TransformationSystem is null, cannot select node")
+                false
+            }
         }
     }
 
@@ -73,23 +84,26 @@ class GestureTransformableNode(
 
         Log.d(TAG, "Current position: [${currentPosition.joinToString()}], rotation: [${currentRotation.joinToString()}]")
 
-        // Only report if position or rotation changed significantly
-        if (hasSignificantChange(lastReportedPosition, currentPosition) || 
-            hasSignificantChange(lastReportedRotation, currentRotation)) {
-            
-            Log.d(TAG, "Significant change detected, sending to Flutter")
-            val data = mapOf(
-                "nodeName" to nodeName,
-                "position" to currentPosition.toList(),
-                "rotation" to currentRotation.toList()
-            )
-            
-            methodChannel.invokeMethod("onNodeTransformed", data)
-            
-            lastReportedPosition = currentPosition
-            lastReportedRotation = currentRotation
-        } else {
-            Log.d(TAG, "No significant change, not reporting")
+        // Always report transformations to Flutter for now (remove threshold check)
+        Log.d(TAG, "Sending transformation to Flutter")
+        val data = mapOf(
+            "nodeName" to nodeName,
+            "position" to currentPosition.toList(),
+            "rotation" to currentRotation.toList()
+        )
+        
+        methodChannel.invokeMethod("onNodeTransformed", data)
+        
+        lastReportedPosition = currentPosition
+        lastReportedRotation = currentRotation
+    }
+    
+    // Override this method to report transformations when they actually happen
+    override fun onTransformChanged(node: Node?, endTransform: Boolean) {
+        super.onTransformChanged(node, endTransform)
+        Log.d(TAG, "onTransformChanged called for $nodeName, endTransform: $endTransform")
+        if (endTransform) {
+            reportTransformation()
         }
     }
 

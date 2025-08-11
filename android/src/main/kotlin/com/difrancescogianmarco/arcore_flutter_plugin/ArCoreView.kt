@@ -386,6 +386,12 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                     ?.scene
                     ?.setOnTouchListener { hitTestResult: HitTestResult, event: MotionEvent ->
 
+                        // First, let TransformationSystem handle the touch for transformable nodes
+                        if (transformationSystem?.onTouch(hitTestResult, event) == true) {
+                            debugLog("TransformationSystem handled touch event")
+                            return@setOnTouchListener true
+                        }
+
                         if (hitTestResult.node != null) {
                             debugLog(" onNodeTap " + hitTestResult.node?.name)
                             debugLog(hitTestResult.node?.localPosition.toString())
