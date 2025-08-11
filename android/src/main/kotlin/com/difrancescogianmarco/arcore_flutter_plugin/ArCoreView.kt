@@ -395,10 +395,9 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     private fun arScenViewInit(call: MethodCall, result: MethodChannel.Result, context: Context) {
         debugLog("arScenViewInit")
         
-        // Add TransformationSystem to the scene
+        // The TransformationSystem is already initialized and will handle its own visualization
         if (transformationSystem != null) {
-            arSceneView?.scene?.addChild(transformationSystem!!.selectionVisualizer)
-            debugLog("✅ Added TransformationSystem to scene")
+            debugLog("✅ TransformationSystem is ready for gesture handling")
         }
         
         val enableTapRecognizer: Boolean? = call.argument("enableTapRecognizer")
