@@ -386,11 +386,12 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                     ?.scene
                     ?.setOnTouchListener { hitTestResult: HitTestResult, event: MotionEvent ->
 
-                        // First, let TransformationSystem handle the touch for transformable nodes
+                        // For transformable nodes, just handle taps (the node's own tap listener will handle selection)
                         if (hitTestResult.node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
-                            debugLog("Touch event on transformable node, letting TransformationSystem handle it")
-                            transformationSystem?.onTouch(hitTestResult, event)
-                            return@setOnTouchListener true
+                            debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
+                            // Let the node's tap listener handle selection - don't call TransformationSystem directly
+                            // The GestureTransformableNode will select itself via transformationSystem.selectNode(this)
+                            return@setOnTouchListener false // Let normal tap handling proceed
                         }
 
                         if (hitTestResult.node != null) {
