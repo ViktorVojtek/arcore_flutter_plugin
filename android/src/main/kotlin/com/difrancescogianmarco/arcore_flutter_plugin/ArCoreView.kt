@@ -432,26 +432,71 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             return
         }
 
-        RenderableCustomFactory.makeRenderable(activity.applicationContext, flutterArCoreNode) { renderable, t ->
-            if (t != null) {
-                result.error("Make Renderable Error", t.localizedMessage, null)
-                return@makeRenderable
-            }
-            val myAnchor = arSceneView?.session?.createAnchor(Pose(flutterArCoreNode.getPosition(), flutterArCoreNode.getRotation()))
-            if (myAnchor != null) {
-                val anchorNode = AnchorNode(myAnchor)
-                anchorNode.name = flutterArCoreNode.name
-                anchorNode.renderable = renderable
+        val myAnchor = arSceneView?.session?.createAnchor(Pose(flutterArCoreNode.getPosition(), flutterArCoreNode.getRotation()))
+        if (myAnchor != null) {
+            
+            debugLog("=== ANCHOR NODE CREATION START ===")
+            debugLog("Anchor node name: ${flutterArCoreNode.name}")
+            debugLog("isTransformable: ${flutterArCoreNode.isTransformable}")
+            debugLog("transformationSystem available: ${transformationSystem != null}")
+            
+            val shouldCreateTransformableAnchor = flutterArCoreNode.isTransformable && transformationSystem != null
+            debugLog("Should create transformable anchor: $shouldCreateTransformableAnchor")
+            
+            if (shouldCreateTransformableAnchor) {
+                debugLog("✅ Creating TRANSFORMABLE anchor node for ${flutterArCoreNode.name}")
+                // Create transformable anchor node
+                NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
+                    debugLog("✅ Transformable anchor creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
+                    
+                    if (node != null) {
+                        // Set the anchor for the transformable node
+                        val anchorNode = AnchorNode(myAnchor)
+                        anchorNode.name = "${flutterArCoreNode.name}_anchor"
+                        anchorNode.addChild(node)
+                        
+                        debugLog("✅ Attaching transformable anchor to scene")
+                        attachNodeToParent(anchorNode, flutterArCoreNode.parentNodeName)
+                        
+                        // Add children
+                        for (childNode in flutterArCoreNode.children) {
+                            childNode.parentNodeName = flutterArCoreNode.name
+                            onAddNode(childNode, null)
+                        }
+                        
+                        debugLog("✅ Transformable anchor node creation completed")
+                        result.success(null)
+                    } else {
+                        debugLog("❌ Transformable anchor creation FAILED: ${throwable?.message}")
+                        result.error("Transformable Anchor Error", throwable?.localizedMessage, null)
+                    }
+                }
+            } else {
+                debugLog("❌ Creating REGULAR anchor for ${flutterArCoreNode.name}")
+                // Create regular anchor node (original logic)
+                RenderableCustomFactory.makeRenderable(activity.applicationContext, flutterArCoreNode) { renderable, t ->
+                    if (t != null) {
+                        result.error("Make Renderable Error", t.localizedMessage, null)
+                        return@makeRenderable
+                    }
+                    
+                    val anchorNode = AnchorNode(myAnchor)
+                    anchorNode.name = flutterArCoreNode.name
+                    anchorNode.renderable = renderable
 
-                debugLog("addNodeWithAnchor inserted ${anchorNode.name}")
-                attachNodeToParent(anchorNode, flutterArCoreNode.parentNodeName)
+                    debugLog("addNodeWithAnchor inserted ${anchorNode.name}")
+                    attachNodeToParent(anchorNode, flutterArCoreNode.parentNodeName)
 
-                for (node in flutterArCoreNode.children) {
-                    node.parentNodeName = flutterArCoreNode.name
-                    onAddNode(node, null)
+                    for (node in flutterArCoreNode.children) {
+                        node.parentNodeName = flutterArCoreNode.name
+                        onAddNode(node, null)
+                    }
+                    result.success(null)
                 }
             }
-            result.success(null)
+        } else {
+            debugLog("❌ Failed to create anchor")
+            result.error("Anchor Error", "Failed to create anchor", null)
         }
     }
 
