@@ -389,12 +389,17 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         
                         debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
                         
-                        // For transformable nodes, let them handle their own gestures
+                        // For transformable nodes, select them first then let them handle their own gestures
                         if (hitTestResult.node is GestureTransformableNode) {
-                            debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
+                            val transformableNode = hitTestResult.node as GestureTransformableNode
+                            debugLog("Touch event on transformable node: ${transformableNode.name}")
+                            
+                            // Explicitly select the node for transformation
+                            transformationSystem?.selectNode(transformableNode)
+                            debugLog("Selected transformable node: ${transformableNode.name} for transformation")
+                            
                             // Let the transformable node handle the touch event
-                            // The TransformationSystem is integrated within the GestureTransformableNode
-                            return@setOnTouchListener false // Allow the node to handle the gesture
+                            return@setOnTouchListener false
                         }
 
                         // Handle regular nodes
