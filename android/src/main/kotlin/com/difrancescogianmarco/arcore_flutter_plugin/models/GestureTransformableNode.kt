@@ -33,14 +33,15 @@ class GestureTransformableNode(
         }
 
     init {
-        Log.d(TAG, "GestureTransformableNode created for: $nodeName")
+        Log.i(TAG, "GestureTransformableNode created for: $nodeName")
+        Log.i(TAG, "Pan enabled: $enablePanGestures, Rotation enabled: $enableRotationGestures")
         updateGestureSettings()
         
         // Enable node selection when tapped
         setOnTapListener { _, _ ->
-            Log.d(TAG, "Node $nodeName tapped - selecting for transformation")
+            Log.i(TAG, "Node $nodeName tapped - selecting for transformation")
             transformationSystem.selectNode(this)
-            Log.d(TAG, "Node $nodeName selected for transformation")
+            Log.i(TAG, "Node $nodeName selected for transformation")
             true
         }
     }

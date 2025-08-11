@@ -385,15 +385,33 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             arSceneView
                     ?.scene
                     ?.setOnTouchListener { hitTestResult: HitTestResult, event: MotionEvent ->
-
-                        // For transformable nodes, just handle taps (the node's own tap listener will handle selection)
-                        if (hitTestResult.node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
-                            debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
-                            // Let the node's tap listener handle selection - don't call TransformationSystem directly
-                            // The GestureTransformableNode will select itself via transformationSystem.selectNode(this)
-                            return@setOnTouchListener false // Let normal tap handling proceed
+                        
+                        debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
+                        
+                        // CRITICAL: Always let TransformationSystem handle ALL touch events first
+                        // This is required for pan, rotation, and scale gestures to work
+                        transformationSystem?.let { transformSystem ->
+                            val transformationHandled = transformSystem.onTouch(null, event)
+                            debugLog("TransformationSystem handled touch: $transformationHandled")
+                            if (transformationHandled) {
+                                debugLog("Touch consumed by TransformationSystem")
+                                return@setOnTouchListener true
+                            }
                         }
 
+                        // For transformable nodes, handle taps but let TransformationSystem handle multi-finger gestures
+                        if (hitTestResult.node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
+                            debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
+                            // Only handle single taps here - TransformationSystem handles multi-finger gestures above
+                            if (event.action == MotionEvent.ACTION_UP && event.pointerCount == 1) {
+                                debugLog("Single tap on transformable node: ${hitTestResult.node?.name}")
+                                // Let the node's tap listener handle selection
+                                return@setOnTouchListener false // Allow tap to reach the node
+                            }
+                            return@setOnTouchListener true // Consume other touch events
+                        }
+
+                        // Handle regular nodes
                         if (hitTestResult.node != null) {
                             debugLog(" onNodeTap " + hitTestResult.node?.name)
                             debugLog(hitTestResult.node?.localPosition.toString())
@@ -401,6 +419,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                             methodChannel.invokeMethod("onNodeTap", hitTestResult.node?.name)
                             return@setOnTouchListener true
                         }
+                        
                         return@setOnTouchListener gestureDetector.onTouchEvent(event)
                     }
         }
