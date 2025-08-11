@@ -130,12 +130,22 @@ class ArCoreController {
         togglePlaneRenderer();
         break;
       case 'onNodeTransformed':
+        if (debug ?? true) {
+          print('[ArCoreController] Received onNodeTransformed callback');
+        }
         if (onNodeTransformed != null) {
           final Map<String, dynamic> data = call.arguments;
           final String nodeName = data['nodeName'];
           final Vector3 position = Vector3.array(data['position']);
           final Vector4 rotation = Vector4.array(data['rotation']);
+          if (debug ?? true) {
+            print('[ArCoreController] Node $nodeName transformed - Position: $position, Rotation: $rotation');
+          }
           onNodeTransformed!(nodeName, position, rotation);
+        } else {
+          if (debug ?? true) {
+            print('[ArCoreController] WARNING: onNodeTransformed callback received but no handler set!');
+          }
         }
         break;
 
@@ -150,7 +160,11 @@ class ArCoreController {
   Future<void> addArCoreNode(ArCoreNode node, {String? parentNodeName}) {
     final params = _addParentNodeNameToParams(node.toMap(), parentNodeName);
     if (debug ?? true) {
-      print(params.toString());
+      print('[ArCoreController] Adding node: ${node.name}');
+      print('[ArCoreController] isTransformable: ${node.isTransformable}');
+      print('[ArCoreController] enablePanGestures: ${node.enablePanGestures}');
+      print('[ArCoreController] enableRotationGestures: ${node.enableRotationGestures}');
+      print('[ArCoreController] Full params: $params');
     }
     _addListeners(node);
     return _channel.invokeMethod('addArCoreNode', params);

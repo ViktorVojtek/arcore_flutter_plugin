@@ -38,14 +38,27 @@ class NodeFactory {
             handler: NodeHandler
         ) {
             if (debug) {
-                Log.i(TAG, "Creating transformable node: ${flutterNode.toString()}")
+                Log.i(TAG, "Creating TRANSFORMABLE node: ${flutterNode.name}")
+                Log.i(TAG, "enablePanGestures: ${flutterNode.enablePanGestures}")
+                Log.i(TAG, "enableRotationGestures: ${flutterNode.enableRotationGestures}")
+                Log.i(TAG, "TransformationSystem: $transformationSystem")
+                Log.i(TAG, "Full FlutterNode: ${flutterNode.toString()}")
             }
             val node = flutterNode.buildTransformableNode(transformationSystem, methodChannel)
+            if (debug) {
+                Log.i(TAG, "buildTransformableNode returned: $node")
+            }
             RenderableCustomFactory.makeRenderable(context, flutterNode) { renderable, t ->
                 if (renderable != null) {
+                    if (debug) {
+                        Log.i(TAG, "Renderable created successfully, attaching to transformable node: ${flutterNode.name}")
+                    }
                     node.renderable = renderable
                     handler(node, null)
                 } else {
+                    if (debug) {
+                        Log.e(TAG, "Failed to create renderable for transformable node: ${flutterNode.name}", t)
+                    }
                     handler(null, t)
                 }
             }

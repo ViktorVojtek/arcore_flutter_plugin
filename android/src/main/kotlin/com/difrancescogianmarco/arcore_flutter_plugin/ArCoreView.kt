@@ -444,8 +444,13 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     fun onAddNode(flutterArCoreNode: FlutterArCoreNode, result: MethodChannel.Result?) {
 
         debugLog(flutterArCoreNode.toString())
+        debugLog("isTransformable: ${flutterArCoreNode.isTransformable}")
+        debugLog("enablePanGestures: ${flutterArCoreNode.enablePanGestures}")
+        debugLog("enableRotationGestures: ${flutterArCoreNode.enableRotationGestures}")
+        debugLog("transformationSystem available: ${transformationSystem != null}")
         
         if (flutterArCoreNode.isTransformable && transformationSystem != null) {
+            debugLog("Creating TRANSFORMABLE node for ${flutterArCoreNode.name}")
             // Create transformable node for gesture handling
             NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
                 debugLog("onAddNode inserted transformable ${node?.name}")
@@ -459,6 +464,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 }
             }
         } else {
+            debugLog("Creating REGULAR node for ${flutterArCoreNode.name} (isTransformable=false or transformationSystem=null)")
             // Create regular node
             NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, throwable ->
                 debugLog("onAddNode inserted ${node?.name}")

@@ -25,6 +25,8 @@ class _GestureExampleState extends State<GestureExample> {
         ),
         body: ArCoreView(
           onArCoreViewCreated: _onArCoreViewCreated,
+          enableUpdateListener: false,
+          debug: true, // Enable debug logging
         ),
       ),
     );
