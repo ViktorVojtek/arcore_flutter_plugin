@@ -15,6 +15,7 @@ import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCo
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreNode
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCorePose
 import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
+import com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.ArCoreUtils
 import com.google.ar.core.*
 import com.google.ar.core.exceptions.CameraNotAvailableException
@@ -389,7 +390,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
                         
                         // For transformable nodes, let them handle their own gestures
-                        if (hitTestResult.node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
+                        if (hitTestResult.node is GestureTransformableNode) {
                             debugLog("Touch event on transformable node: ${hitTestResult.node?.name}")
                             // Let the transformable node handle the touch event
                             // The TransformationSystem is integrated within the GestureTransformableNode
