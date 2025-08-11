@@ -420,7 +420,8 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                             return@setOnTouchListener true
                         }
                         
-                        return@setOnTouchListener gestureDetector.onTouchEvent(event)
+                        // Default fallback
+                        gestureDetector.onTouchEvent(event)
                     }
         }
         val enableUpdateListener: Boolean? = call.argument("enableUpdateListener")
