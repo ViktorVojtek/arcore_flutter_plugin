@@ -49,15 +49,12 @@ class GestureTransformableNode(
     private fun updateGestureSettings() {
         Log.d(TAG, "Updating gesture settings for $nodeName: pan=$enablePanGestures, rotation=$enableRotationGestures")
         
-        // Configure gesture controllers
-        try {
-            scaleController.isEnabled = false // Disable scaling
-            translationController.isEnabled = enablePanGestures
-            rotationController.isEnabled = enableRotationGestures
-            Log.d(TAG, "Gesture controllers updated successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating gesture controllers: ${e.message}")
-        }
+        // Configure gesture controllers - enable scale to help with gesture detection
+        scaleController.isEnabled = true
+        translationController.isEnabled = enablePanGestures
+        rotationController.isEnabled = enableRotationGestures
+        
+        Log.d(TAG, "Gesture controllers updated - scale: true, translation: $enablePanGestures, rotation: $enableRotationGestures")
     }
 
     // Simple reporting method - can be called when needed

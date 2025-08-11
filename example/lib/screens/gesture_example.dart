@@ -25,7 +25,8 @@ class _GestureExampleState extends State<GestureExample> {
         ),
         body: ArCoreView(
           onArCoreViewCreated: _onArCoreViewCreated,
-          enableUpdateListener: false,
+          enableUpdateListener: true, // Try enabling update listener
+          enableTapRecognizer: true, // Enable tap recognition for gestures
           debug: true, // Enable debug logging
         ),
       ),

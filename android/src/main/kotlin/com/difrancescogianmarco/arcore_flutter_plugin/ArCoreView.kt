@@ -16,6 +16,7 @@ import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCo
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCorePose
 import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
 import com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode
+import com.difrancescogianmarco.arcore_flutter_plugin.models.SimpleGestureNode
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.ArCoreUtils
 import com.google.ar.core.*
 import com.google.ar.core.exceptions.CameraNotAvailableException
@@ -26,6 +27,7 @@ import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.rendering.Texture
 import com.google.ar.sceneform.ux.AugmentedFaceNode
 import com.google.ar.sceneform.ux.TransformationSystem
+import com.google.ar.sceneform.ux.SelectionVisualizer
 import io.flutter.app.FlutterApplication
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -80,8 +82,20 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                     }
                 })
         
-        // Initialize TransformationSystem for gesture handling
-        transformationSystem = TransformationSystem(context.resources.displayMetrics, null)
+        // Initialize TransformationSystem for gesture handling with a simple SelectionVisualizer
+        val selectionVisualizer = object : SelectionVisualizer {
+            override fun applySelectionVisual(node: com.google.ar.sceneform.ux.BaseTransformableNode) {
+                // Simple selection - could add visual feedback here if needed
+                debugLog("Node selected: ${node.name}")
+            }
+            
+            override fun removeSelectionVisual(node: com.google.ar.sceneform.ux.BaseTransformableNode) {
+                // Remove selection visual
+                debugLog("Node deselected: ${node.name}")
+            }
+        }
+        
+        transformationSystem = TransformationSystem(context.resources.displayMetrics, selectionVisualizer)
 
         sceneUpdateListener = Scene.OnUpdateListener { frameTime ->
 
@@ -408,16 +422,34 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         
                         debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
                         
+                        // Check what type of node we hit and add extensive logging
+                        debugLog("HIT TEST RESULT - Node type: ${hitTestResult.node?.javaClass?.simpleName}")
+                        debugLog("HIT TEST RESULT - Node name: ${hitTestResult.node?.name}")
+                        debugLog("HIT TEST RESULT - Node is transformable: ${hitTestResult.node is com.google.ar.sceneform.ux.TransformableNode}")
+                        
                         // For transformable nodes, select them first then let them handle their own gestures
                         if (hitTestResult.node is GestureTransformableNode) {
                             val transformableNode = hitTestResult.node as GestureTransformableNode
-                            debugLog("Touch event on transformable node: ${transformableNode.name}")
+                            debugLog("Touch event on GestureTransformableNode: ${transformableNode.name}")
                             
                             // Explicitly select the node for transformation
                             transformationSystem?.selectNode(transformableNode)
                             debugLog("Selected transformable node: ${transformableNode.name} for transformation")
                             
-                            // Let the transformable node handle the touch event
+                            // Let the transformable node handle the touch event - return false to allow gesture processing
+                            return@setOnTouchListener false
+                        }
+                        
+                        // Check for any TransformableNode (including SimpleGestureNode)
+                        if (hitTestResult.node is com.google.ar.sceneform.ux.TransformableNode) {
+                            val transformableNode = hitTestResult.node as com.google.ar.sceneform.ux.TransformableNode
+                            debugLog("Touch event on TransformableNode: ${transformableNode.name}")
+                            
+                            // Explicitly select the node for transformation
+                            transformationSystem?.selectNode(transformableNode)
+                            debugLog("Selected TransformableNode: ${transformableNode.name} for transformation")
+                            
+                            // Let the transformable node handle the touch event - return false to allow gesture processing
                             return@setOnTouchListener false
                         }
 
@@ -430,9 +462,11 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                             return@setOnTouchListener true
                         }
                         
-                        // Default fallback
-                        gestureDetector.onTouchEvent(event)
+                        // Default fallback - let the gestureDetector handle it
+                        return@setOnTouchListener gestureDetector.onTouchEvent(event)
                     }
+        } else {
+            debugLog("⚠️ enableTapRecognizer is disabled - gestures may not work properly")
         }
         val enableUpdateListener: Boolean? = call.argument("enableUpdateListener")
         if (enableUpdateListener != null && enableUpdateListener) {
@@ -624,7 +658,30 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     }
 
     override fun getView(): View {
-        return arSceneView as View
+        debugLog("getView() called - arSceneView is ${if (arSceneView == null) "NULL" else "NOT NULL"}")
+        
+        // If arSceneView is null, recreate it
+        if (arSceneView == null) {
+            debugLog("⚠️ arSceneView was null, recreating it")
+            arSceneView = ArSceneView(activity.applicationContext)
+            
+            // Re-initialize TransformationSystem if needed
+            if (transformationSystem == null) {
+                val selectionVisualizer = object : SelectionVisualizer {
+                    override fun applySelectionVisual(node: com.google.ar.sceneform.ux.BaseTransformableNode) {
+                        debugLog("Node selected in recreation: ${node.name}")
+                    }
+                    
+                    override fun removeSelectionVisual(node: com.google.ar.sceneform.ux.BaseTransformableNode) {
+                        debugLog("Node deselected in recreation: ${node.name}")
+                    }
+                }
+                transformationSystem = TransformationSystem(activity.resources.displayMetrics, selectionVisualizer)
+                debugLog("✅ TransformationSystem recreated with SelectionVisualizer")
+            }
+        }
+        
+        return arSceneView!!
     }
 
     override fun dispose() {
@@ -661,9 +718,17 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         config.augmentedFaceMode = Config.AugmentedFaceMode.MESH3D
                     }
                     config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
-                    config.focusMode = Config.FocusMode.AUTO;
+                    config.focusMode = Config.FocusMode.AUTO
+                    // Ensure the session is configured before setting it up with ArSceneView
                     session.configure(config)
+                    
+                    debugLog("✅ Setting up ARCore session with ArSceneView")
                     arSceneView?.setupSession(session)
+                    
+                    // Force a post to ensure the surface is ready
+                    arSceneView?.post {
+                        debugLog("✅ ArSceneView surface is ready for camera")
+                    }
                 }
             } catch (ex: UnavailableUserDeclinedInstallationException) {
                 // Display an appropriate message to the user zand return gracefully.
@@ -706,7 +771,8 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 debugLog("Goodbye arSceneView.")
 
                 arSceneView?.destroy()
-                arSceneView = null
+                // Don't set arSceneView to null here - let getView() handle recreation
+                // arSceneView = null
 
             }catch (e : Exception){
                 e.printStackTrace();

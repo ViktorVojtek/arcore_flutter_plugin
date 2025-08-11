@@ -1,7 +1,7 @@
 package com.difrancescogianmarco.arcore_flutter_plugin.flutter_models
 
 import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
-import com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode
+import com.difrancescogianmarco.arcore_flutter_plugin.models.SimpleGestureNode
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils.Companion.parseQuaternion
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils.Companion.parseVector3
 import com.google.ar.core.Pose
@@ -54,13 +54,13 @@ class FlutterArCoreNode(map: HashMap<String, *>) {
 
     fun buildTransformableNode(transformationSystem: TransformationSystem, methodChannel: MethodChannel): Node {
         return if (isTransformable) {
-            val transformableNode = GestureTransformableNode(
+            val transformableNode = SimpleGestureNode(
                 transformationSystem, 
-                methodChannel, 
-                name
+                name,
+                methodChannel,
+                enablePanGestures,
+                enableRotationGestures
             )
-            transformableNode.enablePanGestures = enablePanGestures
-            transformableNode.enableRotationGestures = enableRotationGestures
             transformableNode.localPosition = position
             transformableNode.localScale = scale
             transformableNode.localRotation = rotation
