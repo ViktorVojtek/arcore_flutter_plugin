@@ -391,8 +391,9 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                         // CRITICAL: Always let TransformationSystem handle ALL touch events first
                         // This is required for pan, rotation, and scale gestures to work
                         var transformationHandled = false
-                        if (transformationSystem != null) {
-                            transformationHandled = transformationSystem.onTouch(null, event)
+                        val transformSystem = transformationSystem
+                        if (transformSystem != null) {
+                            transformationHandled = transformSystem.onTouch(null, event)
                         }
                         
                         debugLog("TransformationSystem handled touch: $transformationHandled")
