@@ -6,6 +6,8 @@ import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCo
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.ux.TransformationSystem
 import io.flutter.plugin.common.MethodChannel
+import com.google.ar.sceneform.collision.Box
+import com.google.ar.sceneform.rendering.ModelRenderable
 
 typealias NodeHandler = (Node?, Throwable?) -> Unit
 
@@ -22,9 +24,18 @@ class NodeFactory {
             RenderableCustomFactory.makeRenderable(context, flutterNode) { renderable, t ->
                 if (renderable != null) {
                     node.renderable = renderable
+                    // Fallback: set a Box collision shape if none exists
+                    try {
+                        if (node.collisionShape == null && node.renderable is ModelRenderable) {
+                            // Use a default 1x1x1 box if no collision shape is present
+                            node.collisionShape = Box(com.google.ar.sceneform.math.Vector3(1f, 1f, 1f))
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Could not set fallback collision shape: ${e.message}")
+                    }
                     handler(node, null)
-                }else{
-                    handler(null,t)
+                } else {
+                    handler(null, t)
                 }
             }
         }
@@ -54,6 +65,15 @@ class NodeFactory {
                         Log.i(TAG, "Renderable created successfully, attaching to transformable node: ${flutterNode.name}")
                     }
                     node.renderable = renderable
+                    // Fallback: set a Box collision shape if none exists
+                    try {
+                        if (node.collisionShape == null && node.renderable is ModelRenderable) {
+                            // Use a default 1x1x1 box if no collision shape is present
+                            node.collisionShape = Box(com.google.ar.sceneform.math.Vector3(1f, 1f, 1f))
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Could not set fallback collision shape: ${e.message}")
+                    }
                     handler(node, null)
                 } else {
                     if (debug) {

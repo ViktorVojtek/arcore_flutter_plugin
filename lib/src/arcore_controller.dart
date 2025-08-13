@@ -279,4 +279,25 @@ class ArCoreController {
       print(ex);
     }
   }
+
+  // Manual gesture control methods
+  Future<void> rotateSelectedNode(double degrees) {
+    return _channel.invokeMethod('rotateSelectedNode', {'degrees': degrees});
+  }
+
+  Future<void> scaleSelectedNode(double scaleFactor) {
+    return _channel.invokeMethod('scaleSelectedNode', {'scaleFactor': scaleFactor});
+  }
+
+  Future<void> setNodeRotation(double degrees) {
+    return _channel.invokeMethod('setNodeRotation', {'degrees': degrees});
+  }
+
+  Future<void> setNodeScale(double scale) {
+    return _channel.invokeMethod('setNodeScale', {'scale': scale});
+  }
+
+  Future<void> resetSelectedNode() {
+    return _channel.invokeMethod('resetSelectedNode');
+  }
 }

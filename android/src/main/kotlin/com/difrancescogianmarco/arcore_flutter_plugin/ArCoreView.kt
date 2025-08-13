@@ -416,10 +416,16 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
         
         val enableTapRecognizer: Boolean? = call.argument("enableTapRecognizer")
         if (enableTapRecognizer != null && enableTapRecognizer) {
+            // Always forward touches to TransformationSystem so TransformableNodes receive them
+            arSceneView?.scene?.addOnPeekTouchListener { hitTestResult: HitTestResult, motionEvent: MotionEvent ->
+                transformationSystem?.onTouch(hitTestResult, motionEvent)
+            }
             arSceneView
                     ?.scene
                     ?.setOnTouchListener { hitTestResult: HitTestResult, event: MotionEvent ->
-                        
+                        // Ensure TransformationSystem also gets the event here
+                        transformationSystem?.onTouch(hitTestResult, event)
+
                         debugLog("Scene touch event - Action: ${event.action}, PointerCount: ${event.pointerCount}")
                         
                         // Check what type of node we hit and add extensive logging
@@ -436,8 +442,8 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                             transformationSystem?.selectNode(transformableNode)
                             debugLog("Selected transformable node: ${transformableNode.name} for transformation")
                             
-                            // Let the transformable node handle the touch event - return false to allow gesture processing
-                            return@setOnTouchListener false
+                            // We already forwarded the event to TransformationSystem; consume here to avoid fallback interference
+                            return@setOnTouchListener true
                         }
                         
                         // Check for any TransformableNode (including SimpleGestureNode)
@@ -449,8 +455,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                             transformationSystem?.selectNode(transformableNode)
                             debugLog("Selected TransformableNode: ${transformableNode.name} for transformation")
                             
-                            // Let the transformable node handle the touch event - return false to allow gesture processing
-                            return@setOnTouchListener false
+                            return@setOnTouchListener true
                         }
 
                         // Handle regular nodes
@@ -577,10 +582,36 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             // Create transformable node for gesture handling
             NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
                 debugLog("✅ Transformable node creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
-                
                 if (node != null) {
-                    debugLog("✅ Attaching transformable node to parent")
-                    attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                    // Ensure TransformableNode has an AnchorNode parent when added at root
+                    if (flutterArCoreNode.parentNodeName == null) {
+                        try {
+                            val session = arSceneView?.session
+                            if (session != null) {
+                                val anchorPose = Pose(
+                                    flutterArCoreNode.getPosition(),
+                                    flutterArCoreNode.getRotation()
+                                )
+                                val anchor = session.createAnchor(anchorPose)
+                                val anchorNode = AnchorNode(anchor)
+                                anchorNode.name = "${flutterArCoreNode.name}_anchor"
+                                anchorNode.addChild(node)
+                                debugLog("✅ Created AnchorNode '${anchorNode.name}' for transformable node ${flutterArCoreNode.name}")
+                                arSceneView?.scene?.addChild(anchorNode)
+                            } else {
+                                debugLog("⚠️ Session null while creating anchor; falling back to direct attach (may cause rotation crash)")
+                                attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                            }
+                        } catch (e: Exception) {
+                            debugLog("❌ Failed to create anchor for transformable node: ${e.localizedMessage}")
+                            attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                        }
+                    } else {
+                        debugLog("✅ Attaching transformable node to explicit parent: ${flutterArCoreNode.parentNodeName}")
+                        attachNodeToParent(node, flutterArCoreNode.parentNodeName)
+                    }
+
+                    // Attach children (if any)
                     for (n in flutterArCoreNode.children) {
                         n.parentNodeName = flutterArCoreNode.name
                         onAddNode(n, null)
@@ -618,15 +649,39 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             parentNode?.addChild(node)
         } else {
             debugLog("addNodeToSceneWithGeometry: NOT PARENT_NODE_NAME")
-            arSceneView?.scene?.addChild(node)
+            // Avoid attaching transformable nodes directly to the scene without an anchor
+            if (node is com.google.ar.sceneform.ux.TransformableNode ||
+                node is com.difrancescogianmarco.arcore_flutter_plugin.models.SimpleGestureNode ||
+                node is com.difrancescogianmarco.arcore_flutter_plugin.models.GestureTransformableNode) {
+                debugLog("⚠️ Refusing to attach transformable node directly to scene without anchor")
+            } else {
+                arSceneView?.scene?.addChild(node)
+            }
         }
     }
 
     fun removeNode(name: String, result: MethodChannel.Result) {
+        // Try to remove the anchor wrapper first if it exists
+        val anchorWrapper = arSceneView?.scene?.findByName("${name}_anchor")
+        if (anchorWrapper != null) {
+            arSceneView?.scene?.removeChild(anchorWrapper)
+            debugLog("removed anchor wrapper ${anchorWrapper.name}")
+            result.success(null)
+            return
+        }
+
+        // Fallback: remove the node directly
         val node = arSceneView?.scene?.findByName(name)
         if (node != null) {
-            arSceneView?.scene?.removeChild(node);
-            debugLog("removed ${node.name}")
+            // If the node has an AnchorNode parent, remove the parent to clean up the anchor
+            val parent = node.parent
+            if (parent is AnchorNode) {
+                arSceneView?.scene?.removeChild(parent)
+                debugLog("removed parent AnchorNode ${parent.name} for node ${name}")
+            } else {
+                arSceneView?.scene?.removeChild(node)
+                debugLog("removed ${node.name}")
+            }
         }
 
         result.success(null)
@@ -679,6 +734,11 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 transformationSystem = TransformationSystem(activity.resources.displayMetrics, selectionVisualizer)
                 debugLog("✅ TransformationSystem recreated with SelectionVisualizer")
             }
+        }
+
+        // Re-attach peek touch listener so TransformationSystem continues to receive touches after recreation
+        arSceneView?.scene?.addOnPeekTouchListener { hitTestResult: HitTestResult, motionEvent: MotionEvent ->
+            transformationSystem?.onTouch(hitTestResult, motionEvent)
         }
         
         return arSceneView!!

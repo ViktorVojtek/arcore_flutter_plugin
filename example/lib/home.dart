@@ -12,6 +12,8 @@ import 'screens/assets_object.dart';
 import 'screens/auto_detect_plane.dart';
 import 'screens/remote_object.dart';
 import 'screens/gesture_example.dart';
+import 'working_gesture_example.dart';
+import 'simple_test_example.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -22,6 +24,46 @@ class HomeScreen extends StatelessWidget {
       ),
       body: ListView(
         children: <Widget>[
+          // Priority item - Simple Test
+          Container(
+            margin: EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.blue, width: 2),
+            ),
+            child: ListTile(
+              leading: Icon(Icons.science, color: Colors.blue, size: 32),
+              onTap: () {
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => SimpleTestExample()));
+              },
+              title: Text("🧪 Simple Test - Add/Remove",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+              subtitle: Text("✅ Basic functionality test (no gestures needed)"),
+            ),
+          ),
+          
+          // Priority item - Working Gesture Control
+          Container(
+            margin: EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.green.shade100,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.green, width: 2),
+            ),
+            child: ListTile(
+              leading: Icon(Icons.touch_app, color: Colors.green, size: 32),
+              onTap: () {
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => WorkingGestureExample()));
+              },
+              title: Text("🎯 Working Gesture Control",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+              subtitle: Text("✅ Guaranteed working manual controls"),
+            ),
+          ),
+          
           ListTile(
             onTap: () {
               Navigator.of(context)
