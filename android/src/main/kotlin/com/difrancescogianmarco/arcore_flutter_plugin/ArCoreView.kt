@@ -28,6 +28,7 @@ import com.google.ar.sceneform.rendering.Texture
 import com.google.ar.sceneform.ux.AugmentedFaceNode
 import com.google.ar.sceneform.ux.TransformationSystem
 import com.google.ar.sceneform.ux.SelectionVisualizer
+import com.google.ar.sceneform.ux.TransformableNode
 import io.flutter.app.FlutterApplication
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -513,6 +514,13 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                     debugLog("✅ Transformable anchor creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
                     
                     if (node != null) {
+                        // Disable scaling gestures: prevent the node from being resized via two‑finger pinch.
+                        // TransformableNode (and our custom gesture nodes) expose a ScaleController that can be disabled.
+                        if (node is TransformableNode) {
+                            node.scaleController.isEnabled = false
+                            debugLog("🔧 Disabled scale controller for transformable node: ${node.name}")
+                        }
+                        
                         // Set the anchor for the transformable node
                         val anchorNode = AnchorNode(myAnchor)
                         anchorNode.name = "${flutterArCoreNode.name}_anchor"
@@ -583,6 +591,12 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             NodeFactory.makeTransformableNode(activity.applicationContext, flutterArCoreNode, transformationSystem!!, methodChannel, debug) { node, throwable ->
                 debugLog("✅ Transformable node creation callback - Node: ${node?.name}, Error: ${throwable?.message}")
                 if (node != null) {
+                    // Disable scaling gestures on this transformable node to prevent two‑finger pinch scaling.
+                    if (node is TransformableNode) {
+                        node.scaleController.isEnabled = false
+                        debugLog("🔧 Disabled scale controller for transformable node: ${node.name}")
+                    }
+                    
                     // Ensure TransformableNode has an AnchorNode parent when added at root
                     if (flutterArCoreNode.parentNodeName == null) {
                         try {

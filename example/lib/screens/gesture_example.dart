@@ -176,7 +176,7 @@ class _GestureExampleState extends State<GestureExample> {
         name: 'grill_model_${DateTime.now().millisecondsSinceEpoch}',
         objectUrl: "https://storage.googleapis.com/room-bucket/grill_vulcanus_pro730_masterchef-729db30b-5d45-4fed-b85e-4b7f037f5a9d.glb",
         position: position,
-        scale: vector.Vector3(0.5, 0.5, 0.5), // Scale down the model if needed
+        scale: vector.Vector3(1.0, 1.0, 1.0), // Scale down the model if needed
         // Enable gesture handling for GLB model
         isTransformable: true,
         enablePanGestures: true,
