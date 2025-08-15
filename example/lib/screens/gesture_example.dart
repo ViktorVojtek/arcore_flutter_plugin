@@ -11,6 +11,7 @@ class _GestureExampleState extends State<GestureExample> {
   ArCoreController? arCoreController;
   bool _planeDetected = false;
   bool _objectPlaced = false;
+  bool _useGLBModel = false; // Flag to determine which object to place
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +28,9 @@ class _GestureExampleState extends State<GestureExample> {
                     content: Text(_objectPlaced 
                       ? 'Object placed! Use gestures to manipulate it.' 
                       : _planeDetected 
-                        ? 'Plane detected! Tap on the plane to place object.'
-                        : 'Move your device to detect surfaces.'),
-                    duration: Duration(seconds: 2),
+                        ? 'Plane detected! Tap on the plane to place ${_useGLBModel ? "grill model" : "cube"}.'
+                        : 'Move your device to detect surfaces. Toggle the button to switch between cube and grill model.'),
+                    duration: Duration(seconds: 3),
                   ),
                 );
               },
@@ -44,6 +45,54 @@ class _GestureExampleState extends State<GestureExample> {
               enableTapRecognizer: true, // Enable tap recognition for gestures
               enablePlaneRenderer: true, // Show detected planes
               debug: true, // Enable debug logging
+            ),
+            // Model selection button
+            Positioned(
+              top: 50,
+              left: 20,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _useGLBModel ? Colors.green.shade600 : Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _useGLBModel = !_useGLBModel;
+                      // Allow placing new object
+                      _objectPlaced = false;
+                    });
+                    print('Toggle button pressed - now using: ${_useGLBModel ? "GLB Model" : "Blue Cube"}');
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _useGLBModel ? Icons.kitchen : Icons.view_in_ar,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        _useGLBModel ? 'GLB Grill' : 'Blue Cube',
+                        style: TextStyle(
+                          color: Colors.white, 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             // Status indicator
             Positioned(
@@ -60,8 +109,8 @@ class _GestureExampleState extends State<GestureExample> {
                   _objectPlaced 
                     ? 'Object placed! Use gestures to manipulate it.' 
                     : _planeDetected 
-                      ? 'Plane detected! Tap on the plane to place object.'
-                      : 'Move your device to detect surfaces...',
+                      ? 'Plane detected! Tap on the plane to place ${_useGLBModel ? "grill model" : "cube"}.'
+                      : 'Move your device to detect surfaces. Use the toggle button to switch between models.',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
@@ -121,28 +170,45 @@ class _GestureExampleState extends State<GestureExample> {
   }
 
   Future _addGestureObjectAtPosition(vector.Vector3 position) async {
-    final material = ArCoreMaterial(
-      color: Colors.blue,
-      metallic: 0.8,
-      roughness: 0.2,
-    );
-    
-    final cube = ArCoreCube(
-      materials: [material],
-      size: vector.Vector3(0.3, 0.3, 0.3),
-    );
-    
-    final node = ArCoreNode(
-      shape: cube,
-      position: position, // Use the detected plane position
-      // Enable gesture handling
-      isTransformable: true,
-      enablePanGestures: true,
-      enableRotationGestures: true,
-      name: 'gesture_cube_${DateTime.now().millisecondsSinceEpoch}',
-    );
-    
-    arCoreController?.addArCoreNode(node);
+    if (_useGLBModel) {
+      // Place GLB grill model with gesture support
+      final node = ArCoreReferenceNode(
+        name: 'grill_model_${DateTime.now().millisecondsSinceEpoch}',
+        objectUrl: "https://storage.googleapis.com/room-bucket/grill_vulcanus_pro730_masterchef-729db30b-5d45-4fed-b85e-4b7f037f5a9d.glb",
+        position: position,
+        scale: vector.Vector3(0.5, 0.5, 0.5), // Scale down the model if needed
+        // Enable gesture handling for GLB model
+        isTransformable: true,
+        enablePanGestures: true,
+        enableRotationGestures: true,
+      );
+      
+      arCoreController?.addArCoreNodeWithAnchor(node);
+    } else {
+      // Place blue cube (original logic)
+      final material = ArCoreMaterial(
+        color: Colors.blue,
+        metallic: 0.8,
+        roughness: 0.2,
+      );
+      
+      final cube = ArCoreCube(
+        materials: [material],
+        size: vector.Vector3(0.3, 0.3, 0.3),
+      );
+      
+      final node = ArCoreNode(
+        shape: cube,
+        position: position, // Use the detected plane position
+        // Enable gesture handling
+        isTransformable: true,
+        enablePanGestures: true,
+        enableRotationGestures: true,
+        name: 'gesture_cube_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      
+      arCoreController?.addArCoreNode(node);
+    }
   }
 
   @override

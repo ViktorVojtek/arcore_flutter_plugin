@@ -18,12 +18,18 @@ class ArCoreReferenceNode extends ArCoreNode {
     Vector3? position,
     Vector3? scale,
     Vector4? rotation,
+    bool isTransformable = false,
+    bool enablePanGestures = true,
+    bool enableRotationGestures = true,
   }) : super(
             name: name,
             children: children,
             position: position,
             scale: scale,
-            rotation: rotation);
+            rotation: rotation,
+            isTransformable: isTransformable,
+            enablePanGestures: enablePanGestures,
+            enableRotationGestures: enableRotationGestures);
 
   @override
   Map<String, dynamic> toMap() => <String, dynamic>{
